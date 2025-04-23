@@ -1,0 +1,290 @@
+import { useState } from 'react'
+import { Button } from "/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "/components/ui/card"
+import { Input } from "/components/ui/input"
+import { Label } from "/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "/components/ui/select"
+import { Sun, CloudRain, Snowflake, Cloud } from 'lucide-react'
+
+// Data for crop recommendations
+const cropData = {
+  soilTypes: [
+    { value: 'Clay', color: 'bg-amber-800' },
+    { value: 'Sandy', color: 'bg-yellow-300' },
+    { value: 'Loamy', color: 'bg-green-600' },
+    { value: 'Silty', color: 'bg-gray-400' }
+  ],
+  seasons: [
+    { value: 'Spring', icon: <CloudRain className="w-4 h-4" /> },
+    { value: 'Summer', icon: <Sun className="w-4 h-4" /> },
+    { value: 'Autumn', icon: <Cloud className="w-4 h-4" /> },
+    { value: 'Winter', icon: <Snowflake className="w-4 h-4" /> }
+  ],
+  crops: [
+    { name: 'Tomatoes', suitableSoils: ['Loamy', 'Silty'], suitableSeasons: ['Spring', 'Summer'], minPH: 6, maxPH: 7, icon: '🍅' },
+    { name: 'Potatoes', suitableSoils: ['Sandy', 'Loamy'], suitableSeasons: ['Spring', 'Autumn'], minPH: 4.5, maxPH: 6, icon: '🥔' },
+    { name: 'Carrots', suitableSoils: ['Sandy', 'Loamy'], suitableSeasons: ['Spring', 'Summer'], minPH: 6, maxPH: 7, icon: '🥕' },
+    { name: 'Wheat', suitableSoils: ['Clay', 'Loamy'], suitableSeasons: ['Autumn', 'Winter'], minPH: 6, maxPH: 7.5, icon: '🌾' },
+    { name: 'Rice', suitableSoils: ['Clay', 'Silty'], suitableSeasons: ['Summer'], minPH: 5, maxPH: 6.5, icon: '🍚' },
+    { name: 'Spinach', suitableSoils: ['Loamy', 'Silty'], suitableSeasons: ['Spring', 'Autumn'], minPH: 6.5, maxPH: 7.5, icon: '🥬' },
+    { name: 'Cabbage', suitableSoils: ['Clay', 'Loamy'], suitableSeasons: ['Spring', 'Autumn'], minPH: 6, maxPH: 7.5, icon: '🥬' },
+    { name: 'Beans', suitableSoils: ['Loamy', 'Sandy'], suitableSeasons: ['Spring', 'Summer'], minPH: 6, maxPH: 7.5, icon: '🫘' },
+  ],
+  cultivationTips: {
+    Clay: 'Add organic matter to improve drainage and workability. Clay soil holds nutrients well but needs better aeration.',
+    Sandy: 'Add compost to improve water retention and nutrient content. Sandy soil drains quickly but loses nutrients easily.',
+    Loamy: 'Maintain with regular organic matter additions. Loamy soil is ideal but still benefits from amendments.',
+    Silty: 'Avoid compaction and add organic matter to maintain structure. Silty soil is fertile but can become dense.'
+  },
+  manureSuggestions: {
+    Clay: 'Well-rotted manure or compost to improve structure. Apply 2-3 inches annually.',
+    Sandy: 'Compost or green manure to increase organic content. Apply more frequently in smaller amounts.',
+    Loamy: 'Balanced compost to maintain fertility. 1-2 inches annually is sufficient.',
+    Silty: 'Organic compost to maintain structure and fertility. Apply 1-2 inches annually.'
+  }
+}
+
+export default function EcoCropAdvisor() {
+  const [soilType, setSoilType] = useState('')
+  const [season, setSeason] = useState('')
+  const [ph, setPh] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [recommendations, setRecommendations] = useState<{
+    crops: {name: string, icon: string}[]
+    tips: string
+    manure: string
+    soilColor: string
+  } | null>(null)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!soilType || !season || !ph) {
+      alert('Please fill all fields')
+      return
+    }
+
+    const phValue = parseFloat(ph)
+    if (isNaN(phValue) || phValue < 0 || phValue > 14) {
+      alert('Please enter a valid pH between 0 and 14')
+      return
+    }
+
+    setIsLoading(true)
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      // Filter crops based on conditions
+      const suitableCrops = cropData.crops
+        .filter(crop => 
+          crop.suitableSoils.includes(soilType) && 
+          crop.suitableSeasons.includes(season) &&
+          phValue >= crop.minPH && 
+          phValue <= crop.maxPH
+        )
+        .map(crop => ({ name: crop.name, icon: crop.icon }))
+
+      const soilColor = cropData.soilTypes.find(s => s.value === soilType)?.color || 'bg-gray-200'
+      
+      setRecommendations({
+        crops: suitableCrops,
+        tips: cropData.cultivationTips[soilType as keyof typeof cropData.cultivationTips],
+        manure: cropData.manureSuggestions[soilType as keyof typeof cropData.manureSuggestions],
+        soilColor
+      })
+      setIsLoading(false)
+    }, 800)
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
+      <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-green-800 mb-2">EcoCrop Advisor</h1>
+          <p className="text-lg text-green-600 max-w-2xl mx-auto">
+            Get personalized crop recommendations based on your soil type, season, and pH levels
+          </p>
+        </div>
+        
+        <Card className="shadow-lg border-0">
+          <CardHeader className="bg-green-600 rounded-t-lg">
+            <CardTitle className="text-white">Soil Analysis</CardTitle>
+            <CardDescription className="text-green-100">
+              Enter your soil details to get tailored recommendations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-green-800 font-medium">Soil Type</Label>
+                  <Select onValueChange={setSoilType} value={soilType}>
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="Select soil type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cropData.soilTypes.map(type => (
+                        <SelectItem 
+                          key={type.value} 
+                          value={type.value}
+                          className="flex items-center gap-2"
+                        >
+                          <span className={`w-4 h-4 rounded-full ${type.color}`}></span>
+                          {type.value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-green-800 font-medium">Season</Label>
+                  <Select onValueChange={setSeason} value={season}>
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="Select current season" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cropData.seasons.map(season => (
+                        <SelectItem 
+                          key={season.value} 
+                          value={season.value}
+                          className="flex items-center gap-2"
+                        >
+                          {season.icon}
+                          {season.value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-green-800 font-medium">Soil pH (0-14)</Label>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    max="14" 
+                    step="0.1"
+                    value={ph}
+                    onChange={(e) => setPh(e.target.value)}
+                    placeholder="Enter pH value"
+                    className="h-12"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 bg-green-600 hover:bg-green-700 text-lg"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Analyzing...
+                    </div>
+                  ) : 'Get Recommendations'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {recommendations && (
+          <div className="mt-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="border-0 shadow-lg">
+                <CardHeader className={`${recommendations.soilColor} rounded-t-lg`}>
+                  <CardTitle className="text-white">Recommended Crops</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {recommendations.crops.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      {recommendations.crops.map((crop, index) => (
+                        <div key={index} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                          <span className="text-2xl">{crop.icon}</span>
+                          <span className="font-medium">{crop.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-gray-500">No crops found matching your soil conditions.</p>
+                      <p className="text-gray-500 mt-2">Try adjusting your inputs or consider soil amendments.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="bg-blue-600 rounded-t-lg">
+                  <CardTitle className="text-white">Cultivation Tips</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-blue-100 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-700">{recommendations.tips}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="bg-amber-600 rounded-t-lg">
+                  <CardTitle className="text-white">Organic Manure</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-amber-100 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-700">{recommendations.manure}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-6 border border-green-100">
+              <h3 className="font-bold text-green-800 mb-3">Additional Resources</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button variant="outline" className="h-auto py-3 border-green-200 hover:bg-green-50">
+                  <div className="text-left">
+                    <div className="font-medium text-green-800">Soil Testing Guide</div>
+                    <div className="text-sm text-green-600 mt-1">Learn how to properly test your soil</div>
+                  </div>
+                </Button>
+                <Button variant="outline" className="h-auto py-3 border-green-200 hover:bg-green-50">
+                  <div className="text-left">
+                    <div className="font-medium text-green-800">Seasonal Planting</div>
+                    <div className="text-sm text-green-600 mt-1">Best practices for each season</div>
+                  </div>
+                </Button>
+                <Button variant="outline" className="h-auto py-3 border-green-200 hover:bg-green-50">
+                  <div className="text-left">
+                    <div className="font-medium text-green-800">Organic Farming</div>
+                    <div className="text-sm text-green-600 mt-1">Sustainable agriculture methods</div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
